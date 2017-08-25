@@ -1,0 +1,3 @@
+[submodule "src/cli-ini-config"]
+	path = src/cli-ini-config
+	url = https://github.com/DAlexis/cli-ini-config.git

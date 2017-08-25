@@ -41,3 +41,4 @@ macro(export_libs)
 endmacro()
 
 add_subdirectory(shr)
+add_subdirectory(cli-ini-config/src)

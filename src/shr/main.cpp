@@ -1,42 +1,49 @@
-#include <boost/program_options.hpp>
+#include "recorder.hpp"
+
+#include "cic.hpp"
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
-
-#include "bb_api.h"
+#include <signal.h>
 
 using namespace std;
+using namespace cic;
+
+Recorder r;
+
+void signalCallbackHandler(int signum)
+{
+	switch(signum)
+	{
+	    case SIGINT:
+		    cerr << "Interrupt signal" << endl;
+		break;
+	    case SIGTERM:
+		    cerr << "Terminate signal" << endl;
+		break;
+	}
+	r.stop();
+}
 
 int main(int argc, char** argv)
 {
-    namespace po = boost::program_options;
-    po::options_description generalOptions("Genral options");
-    generalOptions.add_options()
-        ("help,h", "Print help message");
-    
-    po::options_description allOptions("Allowed options");
-    allOptions
-        .add(generalOptions);
-    
-    po::variables_map vmOptions;
-    try
-    {
-        po::store(po::parse_command_line(argc, argv, allOptions), vmOptions);
-        po::notify(vmOptions);
-    }
-    catch (po::error& e)
-    {
-        cerr << "Command line parsing error: " << e.what() << endl;
-        return -1;
-    }
-    
-    if (vmOptions.count("help"))
-    {
-        cout << allOptions << endl;
-        return 0;
-    }
-    
+	signal(SIGINT, signalCallbackHandler);
+	signal(SIGTERM, signalCallbackHandler);
 
+	r.readConfig(argc, argv);
+	r.run();
+	/*try {
+		r.readConfig(argc, argv);
+		r.run();
+	} catch (std::exception& ex)
+	{
+		cerr << "Exception during execution: " << ex.what() << endl;
+		return -1;
+	}*/
+	return 0;
+
+/*
     bbStatus status;
 	int handle = -1;
 
@@ -56,7 +63,7 @@ int main(int argc, char** argv)
 	//bbConfigureIO
 	//bbConfigureIQ
 	bbInitiate(handle, BB_STREAMING, BB_STREAM_IQ);
-
+*/
 /*
 	std::vector<float> min, max;
 	unsigned int len;
@@ -88,9 +95,10 @@ int main(int argc, char** argv)
 		<< *iter << " dBm"
 		<< std::endl;
 */
+/*
 	bbAbort(handle);
 	bbCloseDevice(handle);
 
-
+*/
     return 0;
 }
