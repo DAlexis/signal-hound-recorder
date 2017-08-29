@@ -40,5 +40,5 @@ macro(export_libs)
         CACHE INTERNAL "${PROJECT_NAME}: used and exported libs" FORCE)
 endmacro()
 
-add_subdirectory(shr)
 add_subdirectory(cli-ini-config/src)
+add_subdirectory(shr)

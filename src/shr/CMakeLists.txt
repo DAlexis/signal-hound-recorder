@@ -13,7 +13,7 @@ set(EXE_SOURCES
 )
 
 include_directories(
-	${cic_INCLUDE_DIRS}
+    ${cic_INCLUDE_DIRS}
 )
 
 add_executable(${PROJECT_NAME} ${EXE_SOURCES})
@@ -22,7 +22,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 
 target_link_libraries (${PROJECT_NAME}
     bb_api
-	${cic_LIBRARY}
-	${CMAKE_THREAD_LIBS_INIT}
+    ${cic_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 

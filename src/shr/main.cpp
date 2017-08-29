@@ -1,7 +1,5 @@
 #include "recorder.hpp"
 
-#include "cic.hpp"
-
 #include <iostream>
 #include <vector>
 #include <algorithm>
