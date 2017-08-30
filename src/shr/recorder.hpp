@@ -25,6 +25,11 @@ class IStreamProvider
 public:
 	virtual ~IStreamProvider() { }
 	virtual std::unique_ptr<StreamPacket> getPacket(size_t size) = 0;
+    /**
+     * @brief monitorGetNotReaded Function is used for monitoring only to estimate count of not readed samples
+     * @return Count of not readed samples or zero
+     */
+    virtual size_t monitorGetNotReaded() const = 0;
 };
 
 class DeviceEmulator : public IStreamProvider
@@ -32,12 +37,14 @@ class DeviceEmulator : public IStreamProvider
 public:
 	DeviceEmulator(double period = 1e-3, size_t size = 1e3);
 	std::unique_ptr<StreamPacket> getPacket(size_t size) override;
+    size_t monitorGetNotReaded() const override;
 
 private:
 	size_t m_notReadSamples = 0;
 	std::chrono::steady_clock::time_point m_lastTime = std::chrono::steady_clock::now();
 	double m_period;
 	size_t m_size;
+    size_t m_sampleIndex = 0;
 };
 
 class SHDevice : public IStreamProvider
@@ -49,7 +56,8 @@ public:
 	void configureCenterSpan(double center, double span);
 	void configureLevel(double reference = defaultReference, double attenuator = defaultAttenuator);
 	void configureGain(int gain = BB_AUTO_GAIN);
-	void runRealTime();
+    void runRealTime();
+    size_t monitorGetNotReaded() const override;
 
 	std::unique_ptr<StreamPacket> getPacket(size_t size) override;
 
@@ -72,7 +80,8 @@ public:
 
 	void run();
 	void stop();
-	void join();
+
+    virtual size_t currentSize() const { return 0; }
 
 protected:
 	virtual void consume(std::unique_ptr<StreamPacket> sp) = 0;
@@ -118,6 +127,7 @@ class FileSink : public SinkBase
 {
 public:
 	FileSink(const std::string& filenamePrefix);
+    size_t currentSize() const override;
 
 private:
 	void consume(std::unique_ptr<StreamPacket> sp) override;
@@ -126,6 +136,27 @@ private:
 	std::fstream m_dataFile;
 	std::fstream m_indexFile;
 	size_t m_offset = 0;
+};
+
+class Monitor
+{
+public:
+    Monitor(const IStreamProvider* provider, const SinkBase* sink, const Connector* connector);
+
+    void run();
+    void stop();
+
+private:
+    void mainLoop();
+    void printStatus();
+    bool waitOrStop(int milliseconds);
+
+    std::thread m_thread;
+
+    const IStreamProvider* m_provide;
+    const SinkBase* m_sink;
+    const Connector* m_connector;
+    bool m_needStop = false;
 };
 
 class Recorder
@@ -158,17 +189,24 @@ private:
 		cic::ParametersGroup(
 		    "Streaming",
 		    "Files and streams parameters",
-		    cic::Parameter<bool>("simulate", "Use simulation instead of real SignalHound device", false, cic::ParamterType::cmdLine),
 		    cic::Parameter<std::string>("file-prefix", "Filename prefix", "signal-hound"),
 		    cic::Parameter<size_t>("rotation-size", "File rotation size", 50*1024*1024),
 		    cic::Parameter<size_t>("max-block-size", "Max size of block readed from device at one time", 10*1024)
-		)
+        ),
+        cic::ParametersGroup(
+            "Device simulation",
+            "Device simulation parameters for testing purposes",
+            cic::Parameter<bool>("simulate", "Use simulation instead of real SignalHound device", false, cic::ParamterType::cmdLine),
+            cic::Parameter<size_t>("test-block-size", "Size of test block", 1024),
+            cic::Parameter<double>("test-block-period", "Period of test block appearing in seconds", 1)
+        )
 	};
 
 	bool m_needRun = true;
 	std::unique_ptr<IStreamProvider> m_streamProvider; //DeviceEmulator m_emulator;
-	std::unique_ptr<FileSink> m_fileSink;
+    std::unique_ptr<SinkBase> m_fileSink;
 	std::unique_ptr<Connector> m_connector;
+    std::unique_ptr<Monitor> m_monitor;
 	bool m_stopNow = false;
 };
 
