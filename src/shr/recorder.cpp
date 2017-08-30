@@ -25,8 +25,8 @@ StreamPacket::StreamPacket(size_t size)
 
 ////////////////////
 /// DeviceEmulator
-DeviceEmulator::DeviceEmulator(double period, size_t size) :
-    m_period(period), m_size(size)
+DeviceEmulator::DeviceEmulator(double period, size_t size, double sleepOnReceive) :
+    m_period(period), m_size(size), m_sleepOnReceive(sleepOnReceive)
 {
 }
 
@@ -54,6 +54,7 @@ std::unique_ptr<StreamPacket> DeviceEmulator::getPacket(size_t size)
     }
 
     m_notReadSamples -= toRead;
+    std::this_thread::sleep_for(std::chrono::microseconds(size_t(m_sleepOnReceive*1e6)));
 	return pkt;
 }
 
@@ -238,6 +239,7 @@ void FileSink::consume(std::unique_ptr<StreamPacket> sp)
 	HeaderSerialized hs(*sp, m_offset);
 	m_indexFile.write(reinterpret_cast<const char*>(&hs), sizeof(hs));
 	m_dataFile.write(reinterpret_cast<const char*>(sp->data.data()), sizeof(sp->data[0]) * 2 * sp->packet.iqCount);
+    //cout << "index: " << sizeof(hs) << " data: " << sizeof(sp->data[0]) * 2 * sp->packet.iqCount << endl;
 	m_offset += sp->packet.iqCount;
 }
 
@@ -345,7 +347,8 @@ void Recorder::configureSimulator()
 	cout << "Running with device emulation" << endl;
     DeviceEmulator *emulator = new DeviceEmulator(
         m_p["Device simulation"].get<double>("test-block-period"),
-        m_p["Device simulation"].get<size_t>("test-block-size")
+        m_p["Device simulation"].get<size_t>("test-block-size"),
+        m_p["Device simulation"].get<double>("sleep-on-receive")
     );
 
 	m_streamProvider.reset(emulator);
@@ -381,5 +384,6 @@ void Recorder::run()
     // Now stopping all code
     m_fileSink->stop();
     m_monitor->stop();
+    cout << "Recorder stopped" << endl;
 }
 

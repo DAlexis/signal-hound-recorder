@@ -35,7 +35,7 @@ public:
 class DeviceEmulator : public IStreamProvider
 {
 public:
-	DeviceEmulator(double period = 1e-3, size_t size = 1e3);
+    DeviceEmulator(double period = 1e-3, size_t size = 1e3, double sleepOnReceive = 0.0);
 	std::unique_ptr<StreamPacket> getPacket(size_t size) override;
     size_t monitorGetNotReaded() const override;
 
@@ -43,7 +43,8 @@ private:
 	size_t m_notReadSamples = 0;
 	std::chrono::steady_clock::time_point m_lastTime = std::chrono::steady_clock::now();
 	double m_period;
-	size_t m_size;
+    size_t m_size;
+    double m_sleepOnReceive;
     size_t m_sampleIndex = 0;
 };
 
@@ -76,6 +77,7 @@ private:
 class SinkBase
 {
 public:
+    virtual ~SinkBase() {}
 	void enqueue(std::unique_ptr<StreamPacket> sp);
 
 	void run();
@@ -163,6 +165,7 @@ class Recorder
 {
 public:
 	Recorder();
+
 	void readConfig(int argc, char** argv);
 	void run();
 	void stop();
@@ -198,7 +201,8 @@ private:
             "Device simulation parameters for testing purposes",
             cic::Parameter<bool>("simulate", "Use simulation instead of real SignalHound device", false, cic::ParamterType::cmdLine),
             cic::Parameter<size_t>("test-block-size", "Size of test block", 1024),
-            cic::Parameter<double>("test-block-period", "Period of test block appearing in seconds", 1)
+            cic::Parameter<double>("test-block-period", "Period of test block appearing in seconds", 1),
+            cic::Parameter<double>("sleep-on-receive", "Sleep after \"data receiving\" from simulated device to make it more slow", 0.1)
         )
 	};
 
