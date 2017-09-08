@@ -31,34 +31,49 @@ void SHDevice::open()
 
 void SHDevice::configureCenterSpan(double center, double span)
 {
-    bbConfigureCenterSpan(m_handle, center, span);
+    checkRetCode(
+        bbConfigureCenterSpan(m_handle, center, span),
+        "bbConfigureCenterSpan"
+    );
     m_bandwidth = span;
 }
 
 void SHDevice::configureLevel(double reference, double attenuator)
 {
-    bbConfigureLevel(m_handle, reference, attenuator);
+    checkRetCode(
+        bbConfigureLevel(m_handle, reference, attenuator),
+        "bbConfigureLevel"
+    );
 }
 
 void SHDevice::configureGain(int gain)
 {
-    bbConfigureGain(m_handle, gain);
+    checkRetCode(
+        bbConfigureGain(m_handle, gain),
+        "bbConfigureGain"
+    );
 }
 
 void SHDevice::runRealTime()
 {
-    bbStatus ret = bbNoError;
-    ret = bbConfigureIO(m_handle, BB_PORT1_INT_REF_OUT, BB_PORT2_IN_TRIGGER_RISING_EDGE);
-    checkRetCode(ret, "bbConfigureIO");
-    ret = bbConfigureIQ(m_handle, dowsampleFactor(m_bandwidth), m_bandwidth);
-    checkRetCode(ret, "bbConfigureIQ");
-    ret = bbInitiate(m_handle, BB_STREAMING, BB_STREAM_IQ);
-    checkRetCode(ret, "bbInitiate");
+    checkRetCode(
+        bbConfigureIO(m_handle, BB_PORT1_INT_REF_OUT, BB_PORT2_IN_TRIGGER_RISING_EDGE),
+        "bbConfigureIO"
+    );
+
+    checkRetCode(
+        bbConfigureIQ(m_handle, dowsampleFactor(m_bandwidth), m_bandwidth),
+        "bbConfigureIQ"
+    );
+    checkRetCode(
+        bbInitiate(m_handle, BB_STREAMING, BB_STREAM_IQ),
+        "bbInitiate"
+    );
 }
 
 size_t SHDevice::monitorGetNotReaded() const
 {
-    return 0;
+    return m_notReaded;
 }
 
 int SHDevice::handle() const
@@ -70,6 +85,7 @@ unique_ptr<StreamPacket> SHDevice::getPacket(size_t size)
 {
     unique_ptr<StreamPacket> psp(new StreamPacket(size));
     bbGetIQ(m_handle, &psp->packet);
+    m_notReaded = psp->packet.dataRemaining;
     return psp;
 }
 
@@ -77,7 +93,7 @@ void SHDevice::checkRetCode(bbStatus ret, const std::string& message)
 {
     if (ret != bbNoError)
     {
-        throw std::runtime_error(message + "; error code " + std::to_string((int) ret));
+        throw std::runtime_error(message + "; error code " + std::to_string((int) ret) + ": " + bbGetErrorString(ret));
     }
 }
 

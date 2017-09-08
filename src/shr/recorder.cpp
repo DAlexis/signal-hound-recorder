@@ -34,6 +34,28 @@ void Recorder::readConfig(int argc, char** argv)
 	}
 }
 
+void Recorder::printSummary()
+{
+    if (m_p["Device simulation"].get<bool>("simulate"))
+    {
+        cout << "Running DEVICE SIMULATOR with following parameters:" << endl;
+    } else {
+        cout << "Running SignalHound device with following parameters:" << endl;
+    }
+    cout << "Band:" << endl
+         << "  " << m_p["Band"].get<double>("band-from") << " Hz -- " << m_p["Band"].get<double>("band-to") << " Hz" << endl
+         << "Reference:" << endl
+         << "  " << m_p["Level"].get<double>("reference") << " dBm" << endl;
+    cout << "Attenuator:" << endl;
+    if (m_p["Level"].get<double>("attenuator") >= 0)
+         cout << "  " << m_p["Level"].get<double>("attenuator") << " dB" << endl;
+    else
+        cout << "  auto" << endl;
+    cout << "Data and stream files prefix:" << endl
+         << "  " << m_p["Streaming"].get<std::string>("file-prefix") << endl;
+    cout << "==========" << endl;
+}
+
 void Recorder::configureDevice()
 {
 	SHDevice *device = new SHDevice();
@@ -41,9 +63,13 @@ void Recorder::configureDevice()
     m_connector.reset(new Connector(*m_streamProvider, *m_fileSink));
 
     device->open();
+    double f = m_p["Band"].get<double>("band-from");
+    double t = m_p["Band"].get<double>("band-to");
+    double center = (f+t)/2.0;
+    double span = t-f;
 	device->configureCenterSpan(
-	    m_p["Band"].get<double>("freq-center"),
-	    m_p["Band"].get<double>("bandwidth")
+        center,
+        span
 	);
 	device->configureLevel(
 	    m_p["Level"].get<double>("reference"),
@@ -56,9 +82,13 @@ void Recorder::configureDevice()
 void Recorder::configureSimulator()
 {
 	cout << "Running with device emulation" << endl;
+    double f = m_p["Band"].get<double>("band-from");
+    double t = m_p["Band"].get<double>("band-to");
+    double p = m_p["Device simulation"].get<double>("test-block-period");
+    size_t blockSize = 2*(t-f) * p; // Samples per block (during period)
     DeviceEmulator *emulator = new DeviceEmulator(
-        m_p["Device simulation"].get<double>("test-block-period"),
-        m_p["Device simulation"].get<size_t>("test-block-size"),
+        p,
+        blockSize,
         m_p["Device simulation"].get<double>("sleep-on-receive")
     );
 
@@ -76,6 +106,8 @@ void Recorder::run()
 {
 	if (!m_needRun)
 		return;
+
+    printSummary();
 
 	m_fileSink.reset(new FileSink(m_p["Streaming"].get<std::string>("file-prefix")));
 

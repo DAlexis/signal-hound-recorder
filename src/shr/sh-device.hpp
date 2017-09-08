@@ -34,6 +34,7 @@ private:
 
     int m_handle = -1;
     double m_bandwidth = 27e6;
+    size_t m_notReaded = 0;
 };
 
 #endif // SHDEVICE_HPP
