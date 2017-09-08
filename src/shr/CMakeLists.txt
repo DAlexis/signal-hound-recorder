@@ -8,8 +8,18 @@ find_package (Threads)
 set(EXE_SOURCES
     main.cpp
     recorder.cpp
+    communication.cpp
+    file-sink.cpp
+    sh-device.cpp
+    emulated-device.cpp
+    monitor.cpp
     
     recorder.hpp
+    communication.hpp
+    file-sink.hpp
+    sh-device.hpp
+    emulated-device.hpp
+    monitor.hpp
 )
 
 include_directories(
