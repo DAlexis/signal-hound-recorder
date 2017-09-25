@@ -17,6 +17,7 @@ parser.add_argument("--complex", "-c", help="Target for complex samples: re, im,
 parser.add_argument("--input", "-i", help="Input file name")
 parser.add_argument("--offset", "-o", type=int, help="Offset in file in samples (important!)", default=0)
 parser.add_argument("--size", "-s", type=int, help="Size to read")
+parser.add_argument("--mean", "-m", type=int, help="Samples count to mean", default=1)
 
 args = parser.parse_args()
 
@@ -54,8 +55,25 @@ with open(args.input) as f:
         print("Invalid format: " + args.format)
         exit(1)
 
-print(data.shape)
+size = data.shape[0]
+print("Readed samples: {}".format(size))
 
-#data = np.extract(data<100.0, data)
-plt.plot(data)
+if args.mean != 1:
+    print("Averaging...")
+    step = args.mean
+    maximal = []
+    minimal = []
+    average = []
+    for i in range(0, int(size / step)):
+        f = i*step
+        t = f+step
+        sl = data[f:t]
+        maximal.append(np.max(sl))
+        minimal.append(np.min(sl))
+        average.append(np.average(sl))
+    plt.plot(average)
+    plt.plot(minimal)
+    plt.plot(maximal)
+else:
+    plt.plot(data)
 plt.show()
